@@ -1,11 +1,11 @@
-const CACHE_NAME = "topset-compare-v1";
+const CACHE_NAME = "topset-dashboard-v1";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=topset2",
-  "./app.js?v=topset2",
-  "./manifest.webmanifest?v=topset2",
-  "./icon.svg?v=topset2"
+  "./styles.css?v=topset3",
+  "./app.js?v=topset3",
+  "./manifest.webmanifest?v=topset3",
+  "./icon.svg?v=topset3"
 ];
 
 self.addEventListener("install", (event) => {

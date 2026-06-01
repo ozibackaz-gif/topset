@@ -8,22 +8,24 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="TopSet" />
     <title>TopSet</title>
-    <link rel="manifest" href="manifest.webmanifest?v=topset2" />
-    <link rel="apple-touch-icon" href="icon.svg?v=topset2" />
-    <link rel="stylesheet" href="styles.css?v=topset2" />
+    <link rel="manifest" href="manifest.webmanifest?v=topset3" />
+    <link rel="apple-touch-icon" href="icon.svg?v=topset3" />
+    <link rel="stylesheet" href="styles.css?v=topset3" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
         <div class="brand-lockup">
-          <img class="logo-mark" src="icon.svg?v=topset2" alt="" aria-hidden="true" />
+          <img class="logo-mark" src="icon.svg?v=topset3" alt="" aria-hidden="true" />
           <div>
             <p class="eyebrow">Local workout log</p>
             <h1>TopSet</h1>
           </div>
         </div>
-        <button class="icon-button" id="installHelpButton" type="button" aria-label="Show install steps" title="Install">
-          <span aria-hidden="true">+</span>
+        <button class="icon-button menu-button" id="dashboardButton" type="button" aria-label="Open dashboard" title="Dashboard">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
         </button>
       </header>
 
@@ -177,8 +179,49 @@
           </ol>
         </form>
       </dialog>
+
+      <dialog id="dashboardDialog" class="dashboard-dialog">
+        <form method="dialog">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Dashboard</p>
+              <h2>TopSet control</h2>
+            </div>
+            <button class="icon-button small" value="close" aria-label="Close dashboard">x</button>
+          </div>
+
+          <div class="dashboard-grid">
+            <a href="#logPanel" class="dashboard-link">Main page</a>
+            <a href="#templatePanel" class="dashboard-link">Setup split</a>
+            <button class="dashboard-link" id="openInstallHelpButton" type="button">iPhone setup</button>
+          </div>
+
+          <section id="templatePanel" class="template-panel" aria-labelledby="templateTitle">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Setup split</p>
+                <h2 id="templateTitle">Prelog template</h2>
+              </div>
+              <button class="ghost-button compact" id="addTemplateMovementButton" type="button">Add movement</button>
+            </div>
+
+            <label>
+              <span>Template day</span>
+              <select id="templateSplit">
+                <option value="chest_back">Chest + Back</option>
+                <option value="arms">Arms</option>
+                <option value="legs">Legs</option>
+              </select>
+            </label>
+
+            <div id="templateMovements" class="template-movements"></div>
+            <p class="form-error" id="templateStatus" role="status"></p>
+            <button class="primary-button" id="saveTemplateButton" type="button">Save template</button>
+          </section>
+        </form>
+      </dialog>
     </div>
 
-    <script src="app.js?v=topset2" defer></script>
+    <script src="app.js?v=topset3" defer></script>
   </body>
 </html>

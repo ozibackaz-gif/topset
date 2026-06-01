@@ -432,6 +432,19 @@ select:focus {
   min-height: 40px;
 }
 
+.menu-button {
+  display: inline-grid;
+  place-items: center;
+  gap: 0;
+}
+
+.menu-button span {
+  width: 20px;
+  height: 2px;
+  border-radius: 999px;
+  background: #06111b;
+}
+
 .primary-button {
   width: 100%;
   padding: 0 18px;
@@ -659,7 +672,8 @@ canvas {
   line-height: 1.45;
 }
 
-.install-dialog {
+.install-dialog,
+.dashboard-dialog {
   width: min(460px, calc(100% - 32px));
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -669,11 +683,13 @@ canvas {
   box-shadow: 0 22px 80px rgba(0, 0, 0, 0.54), 0 0 34px rgba(34, 167, 255, 0.16);
 }
 
-.install-dialog::backdrop {
+.install-dialog::backdrop,
+.dashboard-dialog::backdrop {
   background: rgba(2, 5, 9, 0.68);
 }
 
-.install-dialog form {
+.install-dialog form,
+.dashboard-dialog form {
   padding: 22px;
 }
 
@@ -682,6 +698,50 @@ canvas {
   padding-left: 22px;
   color: var(--muted);
   line-height: 1.7;
+}
+
+.dashboard-dialog {
+  width: min(640px, calc(100% - 28px));
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.dashboard-link {
+  min-height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  background: rgba(8, 15, 23, 0.72);
+  text-align: center;
+  text-decoration: none;
+  font-weight: 760;
+}
+
+.template-panel {
+  margin-top: 22px;
+  display: grid;
+  gap: 14px;
+}
+
+.template-movements {
+  display: grid;
+  gap: 10px;
+}
+
+.template-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(88px, 0.3fr) 42px;
+  gap: 10px;
+  align-items: end;
 }
 
 @media (max-width: 760px) {
@@ -746,6 +806,11 @@ canvas {
   .history-topline {
     display: grid;
     gap: 4px;
+  }
+
+  .dashboard-grid,
+  .template-row {
+    grid-template-columns: 1fr;
   }
 }
 

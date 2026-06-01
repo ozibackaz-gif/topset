@@ -1,6 +1,8 @@
 const STORAGE_KEY = "topset.workouts.v1";
 const TOPWEIGHT_STORAGE_KEY = "topweight.workouts.v1";
 const LEGACY_STORAGE_KEY = "repkeep.workouts.v1";
+const TEMPLATE_KEY = "topset.templates.v1";
+const DRAFT_KEY = "topset.draft.v1";
 const SPLIT_DAYS = [
   { id: "chest_back", label: "Chest + Back", shortLabel: "C/B" },
   { id: "arms", label: "Arms", shortLabel: "Arms" },
@@ -10,6 +12,7 @@ const SPLIT_DAYS = [
 
 const state = {
   workouts: loadWorkouts(),
+  templates: loadTemplates(),
   chartMetric: "volume"
 };
 
@@ -37,8 +40,15 @@ const els = {
   exportButton: document.querySelector("#exportButton"),
   importInput: document.querySelector("#importInput"),
   clearButton: document.querySelector("#clearButton"),
-  installHelpButton: document.querySelector("#installHelpButton"),
-  installDialog: document.querySelector("#installDialog")
+  dashboardButton: document.querySelector("#dashboardButton"),
+  dashboardDialog: document.querySelector("#dashboardDialog"),
+  openInstallHelpButton: document.querySelector("#openInstallHelpButton"),
+  installDialog: document.querySelector("#installDialog"),
+  templateSplit: document.querySelector("#templateSplit"),
+  templateMovements: document.querySelector("#templateMovements"),
+  addTemplateMovementButton: document.querySelector("#addTemplateMovementButton"),
+  saveTemplateButton: document.querySelector("#saveTemplateButton"),
+  templateStatus: document.querySelector("#templateStatus")
 };
 
 function todayISO() {
@@ -72,8 +82,21 @@ function loadWorkouts() {
   }
 }
 
+function loadTemplates() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TEMPLATE_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function saveWorkouts() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.workouts));
+}
+
+function saveTemplates() {
+  localStorage.setItem(TEMPLATE_KEY, JSON.stringify(state.templates));
 }
 
 function formatNumber(value) {
@@ -158,6 +181,10 @@ function getNextSplitId() {
   return SPLIT_DAYS[(currentIndex + 1) % SPLIT_DAYS.length].id;
 }
 
+function getTemplate(splitId) {
+  return Array.isArray(state.templates[splitId]) ? state.templates[splitId] : [];
+}
+
 function getLastSession(splitId) {
   return [...state.workouts]
     .filter((workout) => workout.split === splitId && workout.split !== "rest" && (workout.movements || []).length)
@@ -211,7 +238,7 @@ function addMovementCard(template = null) {
   els.movementsContainer.append(card);
   card.querySelector(".movement-name").value = template?.name || "";
   const setsContainer = card.querySelector(".sets-container");
-  const setCount = Math.max(1, template?.sets?.length || 3);
+  const setCount = Math.max(1, template?.setCount || template?.sets?.length || 3);
   for (let index = 0; index < setCount; index += 1) {
     addSetRow(setsContainer);
   }
@@ -225,7 +252,61 @@ function renumberMovements() {
 
 function resetMovements() {
   els.movementsContainer.innerHTML = "";
-  addMovementCard();
+  const template = getTemplate(els.workoutSplit.value);
+  if (template.length) {
+    template.forEach((movement) => addMovementCard(movement));
+  } else {
+    addMovementCard();
+  }
+}
+
+function renderTemplateEditor() {
+  const template = getTemplate(els.templateSplit.value);
+  els.templateMovements.innerHTML = "";
+  if (!template.length) {
+    addTemplateMovementRow();
+    return;
+  }
+  template.forEach((movement) => addTemplateMovementRow(movement));
+}
+
+function addTemplateMovementRow(template = {}) {
+  const row = document.createElement("div");
+  row.className = "template-row";
+  row.innerHTML = `
+    <label>
+      <span>Movement</span>
+      <input class="template-name" type="text" placeholder="Incline DB Press" />
+    </label>
+    <label>
+      <span>Sets</span>
+      <input class="template-sets" inputmode="numeric" min="1" type="number" value="3" />
+    </label>
+    <button class="icon-button remove-set" type="button" data-action="remove-template" aria-label="Remove template movement">x</button>
+  `;
+  row.querySelector(".template-name").value = template.name || "";
+  row.querySelector(".template-sets").value = template.setCount || 3;
+  els.templateMovements.append(row);
+}
+
+function collectTemplate() {
+  return [...els.templateMovements.querySelectorAll(".template-row")]
+    .map((row) => ({
+      name: row.querySelector(".template-name").value.trim(),
+      setCount: Math.max(1, Number(row.querySelector(".template-sets").value) || 1)
+    }))
+    .filter((movement) => movement.name);
+}
+
+function saveTemplateFromEditor() {
+  const template = collectTemplate();
+  state.templates[els.templateSplit.value] = template;
+  saveTemplates();
+  els.templateStatus.textContent = template.length ? "Template saved." : "Template cleared.";
+  if (els.workoutSplit.value === els.templateSplit.value) {
+    resetMovements();
+    saveDraft();
+  }
 }
 
 function loadLastSessionIntoForm() {
@@ -259,6 +340,56 @@ function collectMovements() {
       return { name, sets };
     })
     .filter((movement) => movement.name && movement.sets.length);
+}
+
+function collectDraftMovements() {
+  return [...els.movementsContainer.querySelectorAll(".movement-card")]
+    .map((card) => ({
+      name: card.querySelector(".movement-name").value,
+      sets: [...card.querySelectorAll(".set-row")].map((row) => ({
+        reps: row.querySelector(".set-reps").value,
+        weight: row.querySelector(".set-weight").value
+      }))
+    }));
+}
+
+function saveDraft() {
+  const draft = {
+    savedAt: new Date().toISOString(),
+    date: els.workoutDate.value,
+    split: els.workoutSplit.value,
+    notes: els.workoutNotes.value,
+    movements: collectDraftMovements()
+  };
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
+function restoreDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+    if (!draft || !draft.split) return false;
+    els.workoutDate.value = draft.date || todayISO();
+    els.workoutSplit.value = draft.split;
+    els.workoutNotes.value = draft.notes || "";
+    els.movementsContainer.innerHTML = "";
+    (draft.movements || []).forEach((movement) => {
+      addMovementCard({ name: movement.name || "", setCount: Math.max(1, movement.sets?.length || 3) });
+      const card = els.movementsContainer.querySelector(".movement-card:last-child");
+      [...card.querySelectorAll(".set-row")].forEach((row, index) => {
+        row.querySelector(".set-reps").value = movement.sets?.[index]?.reps || "";
+        row.querySelector(".set-weight").value = movement.sets?.[index]?.weight || "";
+      });
+    });
+    if (!els.movementsContainer.children.length) addMovementCard();
+    applySplitMode();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function renderSummary() {
@@ -480,6 +611,7 @@ function resetForm() {
   applySplitMode();
   renderSplitBoard();
   renderLastSession();
+  saveDraft();
 }
 
 els.workoutForm.addEventListener("submit", (event) => {
@@ -506,12 +638,14 @@ els.workoutForm.addEventListener("submit", (event) => {
     notes: els.workoutNotes.value.trim()
   });
   saveWorkouts();
+  clearDraft();
   resetForm();
   renderAll();
 });
 
 els.addMovementButton.addEventListener("click", () => {
   addMovementCard();
+  saveDraft();
 });
 
 els.loadLastButton.addEventListener("click", loadLastSessionIntoForm);
@@ -523,6 +657,7 @@ els.movementsContainer.addEventListener("click", (event) => {
   const card = event.target.closest(".movement-card");
   if (action === "add-set") {
     addSetRow(card.querySelector(".sets-container"));
+    saveDraft();
   }
 
   if (action === "remove-set") {
@@ -530,32 +665,42 @@ els.movementsContainer.addEventListener("click", (event) => {
     if (setsContainer.querySelectorAll(".set-row").length > 1) {
       event.target.closest(".set-row").remove();
       renumberSets(setsContainer);
+      saveDraft();
     }
   }
 
   if (action === "remove-movement" && els.movementsContainer.querySelectorAll(".movement-card").length > 1) {
     card.remove();
     renumberMovements();
+    saveDraft();
   }
 });
 
+els.workoutForm.addEventListener("input", saveDraft);
+els.workoutForm.addEventListener("change", saveDraft);
+
 els.useTodayButton.addEventListener("click", () => {
   els.workoutDate.value = todayISO();
+  saveDraft();
 });
 
 els.workoutSplit.addEventListener("change", () => {
+  resetMovements();
   applySplitMode();
   renderSplitBoard();
   renderLastSession();
+  saveDraft();
 });
 
 els.splitBoard.addEventListener("click", (event) => {
   const card = event.target.closest("[data-split]");
   if (!card) return;
   els.workoutSplit.value = card.dataset.split;
+  resetMovements();
   applySplitMode();
   renderSplitBoard();
   renderLastSession();
+  saveDraft();
 });
 
 els.metricSelect.addEventListener("change", () => {
@@ -602,8 +747,36 @@ els.clearButton.addEventListener("click", () => {
   }
 });
 
-els.installHelpButton.addEventListener("click", () => {
+els.dashboardButton.addEventListener("click", () => {
+  els.dashboardDialog.showModal();
+});
+
+els.openInstallHelpButton.addEventListener("click", () => {
+  els.dashboardDialog.close();
   els.installDialog.showModal();
+});
+
+els.templateSplit.addEventListener("change", () => {
+  els.templateStatus.textContent = "";
+  renderTemplateEditor();
+});
+
+els.addTemplateMovementButton.addEventListener("click", () => {
+  addTemplateMovementRow();
+});
+
+els.templateMovements.addEventListener("click", (event) => {
+  if (event.target.dataset.action === "remove-template" && els.templateMovements.querySelectorAll(".template-row").length > 1) {
+    event.target.closest(".template-row").remove();
+  }
+});
+
+els.saveTemplateButton.addEventListener("click", saveTemplateFromEditor);
+
+els.dashboardDialog.addEventListener("click", (event) => {
+  if (event.target.matches(".dashboard-link[href]")) {
+    els.dashboardDialog.close();
+  }
 });
 
 window.addEventListener("resize", renderChart);
@@ -614,8 +787,11 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-els.workoutDate.value = todayISO();
-els.workoutSplit.value = getNextSplitId();
-resetMovements();
+renderTemplateEditor();
+if (!restoreDraft()) {
+  els.workoutDate.value = todayISO();
+  els.workoutSplit.value = getNextSplitId();
+  resetMovements();
+}
 applySplitMode();
 renderAll();
