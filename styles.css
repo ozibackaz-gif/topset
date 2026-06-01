@@ -435,14 +435,16 @@ select:focus {
 .menu-button {
   display: inline-grid;
   place-items: center;
-  gap: 0;
+  align-content: center;
+  gap: 3px;
 }
 
 .menu-button span {
-  width: 20px;
-  height: 2px;
+  width: 22px;
+  height: 3px;
   border-radius: 999px;
-  background: #06111b;
+  background: #f8fcff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
 }
 
 .primary-button {

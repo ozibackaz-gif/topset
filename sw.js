@@ -1,11 +1,11 @@
-const CACHE_NAME = "topset-dashboard-v1";
+const CACHE_NAME = "topset-placeholders-v1";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=topset3",
-  "./app.js?v=topset3",
-  "./manifest.webmanifest?v=topset3",
-  "./icon.svg?v=topset3"
+  "./styles.css?v=topset4",
+  "./app.js?v=topset4",
+  "./manifest.webmanifest?v=topset4",
+  "./icon.svg?v=topset4"
 ];
 
 self.addEventListener("install", (event) => {

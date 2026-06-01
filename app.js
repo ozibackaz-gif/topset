@@ -191,6 +191,19 @@ function getLastSession(splitId) {
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))[0];
 }
 
+function getLastMovement(splitId, movementName) {
+  const normalizedName = movementName.trim().toLowerCase();
+  if (!normalizedName) return null;
+
+  for (const session of [...state.workouts].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))) {
+    if (session.split !== splitId) continue;
+    const match = (session.movements || []).find((movement) => movement.name.trim().toLowerCase() === normalizedName);
+    if (match) return match;
+  }
+
+  return null;
+}
+
 function addSetRow(setsContainer, values = {}) {
   const row = document.createElement("div");
   const setNumber = setsContainer.querySelectorAll(".set-row").length + 1;
@@ -199,11 +212,11 @@ function addSetRow(setsContainer, values = {}) {
     <div class="set-number">${setNumber}</div>
     <label>
       <span>Reps</span>
-      <input class="set-reps" inputmode="numeric" min="0" type="number" placeholder="8" />
+      <input class="set-reps" inputmode="numeric" min="0" type="number" placeholder="${values.placeholderReps ?? 8}" />
     </label>
     <label>
       <span>Weight</span>
-      <input class="set-weight" inputmode="decimal" min="0" step="0.5" type="number" placeholder="135" />
+      <input class="set-weight" inputmode="decimal" min="0" step="0.5" type="number" placeholder="${values.placeholderWeight ?? 135}" />
     </label>
     <button class="icon-button remove-set" type="button" data-action="remove-set" aria-label="Remove set">x</button>
   `;
@@ -238,10 +251,30 @@ function addMovementCard(template = null) {
   els.movementsContainer.append(card);
   card.querySelector(".movement-name").value = template?.name || "";
   const setsContainer = card.querySelector(".sets-container");
-  const setCount = Math.max(1, template?.setCount || template?.sets?.length || 3);
+  const referenceMovement = template?.sets?.length ? template : getLastMovement(els.workoutSplit.value, template?.name || "");
+  const setCount = Math.max(1, template?.setCount || referenceMovement?.sets?.length || 3);
   for (let index = 0; index < setCount; index += 1) {
-    addSetRow(setsContainer);
+    addSetRow(setsContainer, {
+      placeholderReps: referenceMovement?.sets?.[index]?.reps,
+      placeholderWeight: referenceMovement?.sets?.[index]?.weight
+    });
   }
+}
+
+function updateMovementPlaceholders(card) {
+  const movementName = card.querySelector(".movement-name").value;
+  const referenceMovement = getLastMovement(els.workoutSplit.value, movementName);
+
+  [...card.querySelectorAll(".set-row")].forEach((row, index) => {
+    const repsInput = row.querySelector(".set-reps");
+    const weightInput = row.querySelector(".set-weight");
+    repsInput.placeholder = referenceMovement?.sets?.[index]?.reps ?? "8";
+    weightInput.placeholder = referenceMovement?.sets?.[index]?.weight ?? "135";
+  });
+}
+
+function updateAllMovementPlaceholders() {
+  [...els.movementsContainer.querySelectorAll(".movement-card")].forEach(updateMovementPlaceholders);
 }
 
 function renumberMovements() {
@@ -258,6 +291,7 @@ function resetMovements() {
   } else {
     addMovementCard();
   }
+  updateAllMovementPlaceholders();
 }
 
 function renderTemplateEditor() {
@@ -656,7 +690,13 @@ els.movementsContainer.addEventListener("click", (event) => {
 
   const card = event.target.closest(".movement-card");
   if (action === "add-set") {
-    addSetRow(card.querySelector(".sets-container"));
+    const setsContainer = card.querySelector(".sets-container");
+    const referenceMovement = getLastMovement(els.workoutSplit.value, card.querySelector(".movement-name").value);
+    const nextIndex = setsContainer.querySelectorAll(".set-row").length;
+    addSetRow(setsContainer, {
+      placeholderReps: referenceMovement?.sets?.[nextIndex]?.reps,
+      placeholderWeight: referenceMovement?.sets?.[nextIndex]?.weight
+    });
     saveDraft();
   }
 
@@ -676,7 +716,12 @@ els.movementsContainer.addEventListener("click", (event) => {
   }
 });
 
-els.workoutForm.addEventListener("input", saveDraft);
+els.workoutForm.addEventListener("input", (event) => {
+  if (event.target.classList.contains("movement-name")) {
+    updateMovementPlaceholders(event.target.closest(".movement-card"));
+  }
+  saveDraft();
+});
 els.workoutForm.addEventListener("change", saveDraft);
 
 els.useTodayButton.addEventListener("click", () => {
@@ -689,6 +734,7 @@ els.workoutSplit.addEventListener("change", () => {
   applySplitMode();
   renderSplitBoard();
   renderLastSession();
+  updateAllMovementPlaceholders();
   saveDraft();
 });
 
@@ -700,6 +746,7 @@ els.splitBoard.addEventListener("click", (event) => {
   applySplitMode();
   renderSplitBoard();
   renderLastSession();
+  updateAllMovementPlaceholders();
   saveDraft();
 });
 
