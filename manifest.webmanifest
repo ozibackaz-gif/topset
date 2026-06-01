@@ -1,0 +1,17 @@
+{
+  "name": "TopSet Workout Tracker",
+  "short_name": "TopSet",
+  "description": "A local-first workout tracker for logging sets, volume, streaks, and progress.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#05070b",
+  "theme_color": "#05070b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
